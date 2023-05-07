@@ -1,0 +1,4 @@
+outs:
+- md5: 27556a405509cdedcbed0d0837e44bf5
+  size: 2747
+  path: provincal_summary.csv
