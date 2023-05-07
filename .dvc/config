@@ -1,4 +1,6 @@
 [core]
-    remote = bucket
+    remote = gdrive
 ['remote "bucket"']
     url = s3://open-source/ballot-location
+['remote "gdrive"']
+    url = gdrive://OpenSource/ballot-location/
