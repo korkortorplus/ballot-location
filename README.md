@@ -16,3 +16,6 @@ crack the location of Thailand ballot location #vote66
 
 มีอะไรทักมาได้เลยครับ ที่ดิส https://discord.gg/nNB8zqhQAW
 
+## Map Visualization
+- [Ballot Heatmap](https://kepler.gl/demo/map/dropbox?path=/apps/kepler.gl%20(managed%20by%20uber%20technologies,%20inc.)/keplergl_0a86aemm.json)
+- [N Ballot Count](https://kepler.gl/demo/map?mapUrl=https://dl.dropboxusercontent.com/s/l4syuquu1y58gy5/keplergl_pg7bm8g.json)
