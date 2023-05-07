@@ -30,3 +30,6 @@ setup:
     pip install keplergl
 
     jupyter labextension install @jupyter-widgets/jupyterlab-manager keplergl-jupyter
+
+download_poom_ballot:
+    wget https://raw.githubusercontent.com/heypoom/voting-station-locations/main/locations.csv -O data/poom_ballot_location.csv
