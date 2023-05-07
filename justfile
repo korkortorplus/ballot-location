@@ -21,3 +21,12 @@ run exec:
     APP_ENV=OPENSOURCE
     eval $(op signin)
     op run --env-file .env.tpl -- {{ exec }}
+
+# setup env
+setup:
+    #!/bin/bash
+    
+    # install kepler ref https://docs.kepler.gl/docs/keplergl-jupyter#install
+    pip install keplergl
+
+    jupyter labextension install @jupyter-widgets/jupyterlab-manager keplergl-jupyter
