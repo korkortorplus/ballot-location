@@ -5,6 +5,9 @@ set_dvc:
     dvc remote modify --local bucket access_key_id $AWS_ACCESS_KEY_ID
     dvc remote modify --local bucket secret_access_key $AWS_SECRET_ACCESS_KEY
 
+    dvc remote modify --local gdrive gdrive_client_id $GDRIVE_CLIENT_ID
+    dvc remote modify --local gdrive gdrive_client_secret $GDRIVE_CLIENT_SECRET
+
 dvc-push:
     just run "dvc push"
 
@@ -33,3 +36,4 @@ setup:
 
 download_poom_ballot:
     wget https://raw.githubusercontent.com/heypoom/voting-station-locations/main/locations.csv -O data/poom_ballot_location.csv
+
