@@ -1,0 +1,4 @@
+outs:
+- md5: 3dc121248aed8b35973519b371cb9825
+  size: 79288870
+  path: ballots_raw.csv
