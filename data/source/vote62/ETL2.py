@@ -1,4 +1,5 @@
 import asyncio
+import imp
 import pickle
 import httpx
 import pandas as pd
@@ -12,7 +13,11 @@ from tqdm import tqdm
 memory = Memory(location=".cache", verbose=0)
 
 # Establish SQLite connection and create table if not exists
-conn = sqlite3.connect("ballot_data.sqlite")
+from pathlib import Path
+
+file_path = Path(__file__).parent / "ballot_data.sqlite"
+
+conn = sqlite3.connect(file_path)
 c = conn.cursor()
 c.execute(
     """CREATE TABLE IF NOT EXISTS ballot_data
