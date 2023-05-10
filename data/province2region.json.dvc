@@ -1,0 +1,4 @@
+outs:
+- md5: 0c8a797feb1abe2dd34198df9bd0f585
+  size: 7432
+  path: province2region.json
