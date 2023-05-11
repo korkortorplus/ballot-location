@@ -15,7 +15,11 @@ memory = Memory(location=".cache", verbose=0)
 # Establish SQLite connection and create table if not exists
 from pathlib import Path
 
-file_path = Path(__file__).parent / "ballot_data.sqlite"
+# add date to file name
+from datetime import date
+
+date = date.today().strftime("%Y-%m-%d")
+file_path = Path(__file__).parent / f"vote62_data_{date}.sqlite"
 
 conn = sqlite3.connect(file_path)
 c = conn.cursor()

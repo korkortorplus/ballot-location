@@ -1,0 +1,4 @@
+outs:
+- md5: aef2221deeb1ea6e6ab083be7435dfbb
+  size: 40935424
+  path: ballot_data_10052023.sqlite
