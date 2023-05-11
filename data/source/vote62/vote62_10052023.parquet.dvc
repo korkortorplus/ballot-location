@@ -1,0 +1,4 @@
+outs:
+- md5: bf95a48203acb7066464f6a11070aed2
+  size: 1011501
+  path: vote62_10052023.parquet

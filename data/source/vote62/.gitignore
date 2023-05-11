@@ -5,3 +5,5 @@
 /ballots_raw.csv
 /ballots_raw.zip
 /unique_ballot_unit_info.csv
+/vote62_10052023.parquet
+/vote62_10052023_sample.csv
