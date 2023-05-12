@@ -1,0 +1,4 @@
+outs:
+- md5: 34ebba4535320349b2e56439c8ccbafe
+  size: 36507648
+  path: vote62_data_2023-05-12.sqlite

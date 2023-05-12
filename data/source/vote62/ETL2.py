@@ -126,12 +126,35 @@ async def get_ballot_data_all():
     return parameters
 
 
+def data_exists_in_db(province, amphur, tambon):
+    c.execute(
+        "SELECT COUNT(*) FROM ballot_data WHERE province=? AND amphur=? AND tambon=?",
+        (province, amphur, tambon),
+    )
+    count = c.fetchone()[0]
+    return count > 0
+
+
 async def get_ballot_data_all_batch(batch_size=10):
     ps = await get_provincal_list()
 
     async def process_batch(batch_tasks, batch_tasks_args):
-        results = await asyncio.gather(*batch_tasks)
-        for (p, a, t), (ballot_meta, ballot_units) in zip(batch_tasks_args, results):
+        tasks_to_process = []
+        tasks_args_to_process = []
+
+        for task, task_args in zip(batch_tasks, batch_tasks_args):
+            p, a, t = task_args
+            if not data_exists_in_db(p, a, t):
+                tasks_to_process.append(task)
+                tasks_args_to_process.append(task_args)
+
+        if not tasks_to_process:
+            return
+
+        results = await asyncio.gather(*tasks_to_process)
+        for (p, a, t), (ballot_meta, ballot_units) in zip(
+            tasks_args_to_process, results
+        ):
             # Insert data into SQLite
             c.execute(
                 "INSERT INTO ballot_data VALUES (?, ?, ?, ?, ?)",
