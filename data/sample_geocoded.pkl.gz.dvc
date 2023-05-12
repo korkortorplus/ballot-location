@@ -1,0 +1,4 @@
+outs:
+- md5: d2858301914f84d6186b6627b488fd2b
+  size: 24789
+  path: sample_geocoded.pkl.gz

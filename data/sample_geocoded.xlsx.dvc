@@ -1,0 +1,4 @@
+outs:
+- md5: 21188fb4e567fbbaef9b7483bc3308c7
+  size: 30894
+  path: sample_geocoded.xlsx
