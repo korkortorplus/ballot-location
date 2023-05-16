@@ -188,7 +188,14 @@ async def main():
 
 
 # Function to fetch data from SQLite
-def fetch_data_from_sqlite(province=None, amphur=None, tambon=None):
+def fetch_data_from_sqlite(province=None, amphur=None, tambon=None, date_=None):
+    date_ = date_ if date_ else date.today()
+    date_ = date_.strftime("%Y%m%d")
+
+    file_path = Path(__file__).parent / f"vote62_data_{date}.sqlite"
+
+    conn = sqlite3.connect(file_path)
+
     c = conn.cursor()
     query = "SELECT * FROM ballot_data"
     conditions = []
