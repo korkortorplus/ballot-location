@@ -1,0 +1,4 @@
+outs:
+- md5: 8d7231f3213336cc25ef4ca04bd61d77
+  size: 4814254
+  path: ect.parquet
