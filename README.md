@@ -49,26 +49,79 @@ mise run download:inputs
 uv run jupyter lab
 ```
 
-Main notebook: `map.ipynb` - Visualization of ballot locations on KeplerGL maps
+### ECT66 Geocoding Pipeline
+
+```bash
+cd ect66-geo-decoding
+
+# Run complete pipeline (see ect66-geo-decoding/README.md for details)
+uv run jupyter notebook notebooks/01_transform_raw_ect.ipynb
+uv run python scripts/batch_geocode.py --batch 1
+uv run jupyter notebook notebooks/03_spatial_validation.ipynb
+
+# Final output: outputs/ect66_geocoded_validated.parquet
+```
+
+See [ect66-geo-decoding/README.md](ect66-geo-decoding/README.md) for complete pipeline documentation.
+
+
+## ECT66 Geocoding Pipeline
+
+Our main effort: geocoding **95,249 voting stations** from official ECT data.
+
+**Source Data:** [ECT Official Spreadsheet](https://docs.google.com/spreadsheets/d/19oosGgL5OC7Qdu5RwYDEkqQSsNgkThMS22pEKpz77qc/edit?gid=1984776718#gid=1984776718)
+
+```
+ect66-geo-decoding/
+├── inputs/
+│   └── ect66_raw_voting_units.csv     # 95,249 rows, 30 MB
+│
+├── notebooks/
+│   ├── 01_transform_raw_ect.ipynb     # Transform raw CSV
+│   ├── 02_parse_geocoding.ipynb       # Parse Google results
+│   ├── 03_spatial_validation.ipynb    # Spatial validation & tier assignment
+│   └── 04_quality_assessment.ipynb    # Quality analysis
+│
+├── scripts/
+│   ├── batch_geocode.py               # Google Maps batch geocoding
+│   └── upload_to_valalis.py           # Upload to Valalis API
+│
+├── lib/
+│   ├── models.py                      # UnitData, GMapEntry models
+│   └── valalis_client.py              # VA_Elect_API async client
+│
+├── intermediate/
+│   ├── ect_cleaned.parquet            # 4.8 MB
+│   ├── ect_batch_{1,2,3}.parquet      # 25 MB total
+│   └── google_geocoding_raw.parquet   # 18 MB
+│
+├── outputs/
+│   ├── ect66_geocoded_validated.parquet  # FINAL (7.9 MB) ✅
+│   └── valalis_upload_response.parquet   # 7.8 MB
+│
+└── shapefiles/                        # Geographic reference data
+    ├── tambon_DOL_utf8.gpkg           # 96 MB
+    ├── BMA_ADMIN_SUB_DISTRICT.gpkg    # 1.6 MB
+    └── เขตการเลือกตั้ง 66/             # ECT electoral districts
+```
 
 ## Data Sources
 
-![Vote Location Data Evolution](assets/vote_location_evolution.svg)
-
 | Source | Description | Coverage | Status |
 |--------|-------------|----------|--------|
+| **Vote66 (ECT66)** | **Official ECT data with Google geocoding + spatial validation. Quality: 29.6% Tier A+ (validated), 68.8% Tier D (synthetic)** | **95,249 locations (100%)** | **Production** |
 | Vote62 | Historical ballot data from 21 volunteers | 25,784 addresses, 8,056 verified | Complete |
 | [voting-station-locations](https://github.com/heypoom/voting-station-locations) | Poom's advance voting stations (Google Places API) | ~444 locations (0.47%) | Reference |
 | [election-station-66](https://github.com/thawirasm-j/election-station-66) | Visa's geocoded dataset (2-step Google API) | 81,427 locations (91.7% success) | Parallel effort |
-| **Vote66 (Ours)** | **Multi-source geocoded dataset** | **95,249 locations (100%)** | **Production** |
 | Vote69 | Future election data | TBD | Planned |
 
 **Data Locations:**
-- Poom's advance voting: `data/poom_ballot_location.csv`
-- ECT boundaries: `data/SHP ECT attributes/` ([Thai-ECT-election-map-66](https://github.com/KittapatR/Thai-ECT-election-map-66))
-- Vote62 historical: `data/source/vote62/` (DVC)
+- ECT66 geocoded: `ect66-geo-decoding/outputs/ect66_geocoded_validated.parquet` (DVC)
+- Poom's advance voting: Downloaded via `mise run download:inputs:poom`
+- เขตการเลือกตั้ง 66: `ect66-geo-decoding/shapefiles/เขตการเลือกตั้ง 66/`
+- Tambon shapefiles: `ect66-geo-decoding/shapefiles/` (DVC)
 
-See [data/DATA_SOURCES.md](data/DATA_SOURCES.md) for complete data documentation.
+See [ect66-geo-decoding/README.md](ect66-geo-decoding/README.md) and [ect66-geo-decoding/TIER_SYSTEM.md](ect66-geo-decoding/TIER_SYSTEM.md) for complete documentation.
 
 ## Attempts
 
