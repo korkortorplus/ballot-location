@@ -1,10 +1,5 @@
 [core]
-    remote = bucket
-['remote "bucket"']
-    url = s3://open-source/ballot-location
-    endpointurl = https://566278d014a152a3abe22e2f8e040cf5.r2.cloudflarestorage.com/
-['remote "gdrive"']
-    url = gdrive://root/OpenSource/ballot-location/
-    gdrive_acknowledge_abuse = true
-['remote "vedas"']
-    url = ssh://vedas/mnt/moon/open-source/ballot-location
+    remote = origin
+['remote "origin"']
+    url = s3://dvc
+    endpointurl = https://dagshub.com/wasdee/ballot-location.s3
