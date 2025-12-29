@@ -19,7 +19,12 @@ crack the location of Thailand ballot location #vote66
 ```bash
 # Install dependencies
 uv sync
+
+# Setup git hooks (recommended)
+mise run setup:hooks
 ```
+
+**Git Hooks:** The project uses [pre-commit](https://pre-commit.com/) to prevent accidentally committing large files (>5MB) to git. Large files should be tracked with DVC instead.
 
 ### Pull Data (DVC)
 
