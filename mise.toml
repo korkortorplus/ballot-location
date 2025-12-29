@@ -1,0 +1,51 @@
+[env]
+_.file = ".env"
+
+
+[tasks.dvc-push]
+description = "Push data to DVC remote"
+run = "mise run op-run 'dvc push'"
+
+[tasks.setup]
+description = "Setup environment (install kepler)"
+run = """
+#!/bin/bash
+# install kepler ref https://docs.kepler.gl/docs/keplergl-jupyter#install
+uv pip install keplergl
+jupyter labextension install @jupyter-widgets/jupyterlab-manager keplergl-jupyter
+"""
+
+[tasks."setup:hooks"]
+description = "Install git hooks (pre-commit framework)"
+run = """
+#!/bin/bash
+set -e
+echo "Installing pre-commit hooks..."
+uv run pre-commit install
+echo "✓ Pre-commit hooks installed successfully"
+echo "  Large file check: >5MB files will be rejected"
+echo ""
+echo "To run hooks manually: uv run pre-commit run --all-files"
+"""
+
+[tasks."download:inputs"]
+description = "Download all external input data"
+depends = ["download:inputs:poom", "download:inputs:ect"]
+
+[tasks."download:inputs:poom"]
+description = "Download poom ballot location data"
+run = "curl -L https://raw.githubusercontent.com/heypoom/voting-station-locations/main/locations.csv -o data/poom_ballot_location.csv"
+
+[tasks."download:inputs:ect"]
+description = "Download ECT electoral district shapefile"
+run = """
+#!/bin/bash
+set -e
+TEMP_DIR=$(mktemp -d)
+git clone --depth 1 --filter=blob:none --sparse https://github.com/KittapatR/Thai-ECT-election-map-66.git "$TEMP_DIR"
+cd "$TEMP_DIR"
+git sparse-checkout set ECT_constituencies
+mkdir -p "$MISE_PROJECT_ROOT/data/SHP ECT attributes"
+cp ECT_constituencies/2566_TH_ECT_attributes.* "$MISE_PROJECT_ROOT/data/SHP ECT attributes/"
+rm -rf "$TEMP_DIR"
+"""

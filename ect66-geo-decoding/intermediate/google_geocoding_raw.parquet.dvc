@@ -1,0 +1,5 @@
+outs:
+- md5: de16a47168573aeb51819a80e840c167
+  size: 17586266
+  hash: md5
+  path: google_geocoding_raw.parquet

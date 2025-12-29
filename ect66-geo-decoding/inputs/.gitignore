@@ -1,0 +1,12 @@
+# Data files (DVC-tracked)
+*.csv
+*.parquet
+*.pkl
+*.xlsx
+*.gpkg
+
+# Allow DVC metadata
+!*.dvc
+
+# Allow Python notebooks
+!*.ipynb

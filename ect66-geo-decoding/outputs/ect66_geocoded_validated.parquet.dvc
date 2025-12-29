@@ -1,0 +1,5 @@
+outs:
+- md5: 4264e2af80d16bf060fb6564bebee333
+  size: 7915989
+  hash: md5
+  path: ect66_geocoded_validated.parquet

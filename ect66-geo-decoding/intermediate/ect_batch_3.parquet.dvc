@@ -1,0 +1,4 @@
+outs:
+- md5: ee43de8bed06fa48d376fa600f4c5def
+  size: 14182831
+  path: ect_batch_3.parquet

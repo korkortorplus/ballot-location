@@ -1,0 +1,5 @@
+outs:
+- md5: 19ef83cf5c96cdbb26b6f476f859c342
+  size: 4760134
+  path: ect.parquet
+  hash: md5

@@ -1,0 +1,43 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Prevent large files (>5MB) from being committed to git
+      # Large files should be tracked with DVC instead
+      - id: check-added-large-files
+        args: ['--maxkb=5120']  # 5MB = 5120 KB
+        exclude: '\.dvc$'  # Allow .dvc files
+
+      # Check for files that would conflict in case-insensitive filesystems
+      - id: check-case-conflict
+
+      # Check for merge conflicts
+      - id: check-merge-conflict
+
+      # Check YAML files
+      - id: check-yaml
+        args: ['--unsafe']  # Allow custom YAML tags
+
+      # Check TOML files
+      - id: check-toml
+
+      # Trim trailing whitespace
+      - id: trailing-whitespace
+        exclude: '\.csv$|\.tsv$'  # Don't modify data files
+
+      # Ensure files end with newline
+      - id: end-of-file-fixer
+        exclude: '\.csv$|\.tsv$|\.parquet$|\.pkl$'  # Don't modify data files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.13
+    hooks:
+      # Run Ruff linter
+      - id: ruff
+        args: ['--fix']
+
+      # Run Ruff formatter
+      - id: ruff-format
