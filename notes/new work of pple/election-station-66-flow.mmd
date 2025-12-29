@@ -1,0 +1,62 @@
+flowchart TD
+    subgraph Load["1. Data Loading"]
+        A[("station66_distinct_clean.csv<br>81,427 rows")] --> B[Load with pandas]
+        C[("thailand_province_amphoe_tambon.csv")] --> D[Load reference data]
+    end
+
+    subgraph Clean["2. Text Cleaning"]
+        B --> E["Convert Thai numerals<br>๐-๙ → 0-9"]
+        E --> F["Remove keywords<br>เต็นท์, ปะรำ, บริเวณ"]
+        F --> G["Remove bracketed content<br>(1), (ก), etc."]
+        G --> H["Normalize whitespace<br>& punctuation"]
+    end
+
+    subgraph Enrich["3. Data Enrichment"]
+        H --> I["Extract district from registrar<br>Remove: ท้องถิ่น, เทศบาล, อำเภอ"]
+        I --> J{"Join with<br>admin data"}
+        D --> J
+        J --> K["Match: subdistrict + district + province"]
+        J --> L["Fallback: subdistrict + province"]
+        K --> M[Merged dataset with<br>ADM codes & English names]
+        L --> M
+    end
+
+    subgraph Address["4. Address Construction"]
+        M --> N{Province =<br>Bangkok?}
+        N -->|Yes| O["location แขวงX เขตY กรุงเทพฯ"]
+        N -->|No| P["location ตำบลX อำเภอY จังหวัดZ"]
+        O --> Q[Full Thai address]
+        P --> Q
+    end
+
+    subgraph Geocode["5. Geocoding Pipeline"]
+        Q --> R["Google Places<br>Text Search API"]
+        R --> S{Found<br>place_id?}
+        S -->|Yes| T[Store place_id]
+        S -->|No| U[Mark as failed]
+        T --> V["Google Geocode API<br>place_id → lat/long"]
+        V --> W{Got<br>coordinates?}
+        W -->|Yes| X[Store lat/long]
+        W -->|No| U
+    end
+
+    subgraph Batch["6. Batch Processing"]
+        X --> Y["Save checkpoint<br>every batch"]
+        U --> Y
+        Y --> Z{More<br>rows?}
+        Z -->|Yes| Q
+        Z -->|No| AA[Combine all chunks]
+    end
+
+    subgraph Validate["7. Validation"]
+        AA --> AB["Compare geocoded address<br>vs expected admin areas"]
+        AB --> AC["Calculate distance<br>from subdistrict centroid"]
+        AC --> AD[("Final geocoded dataset<br>~91.7% success rate")]
+    end
+
+    style A fill:#e1f5fe
+    style C fill:#e1f5fe
+    style AD fill:#c8e6c9
+    style U fill:#ffcdd2
+    style R fill:#fff3e0
+    style V fill:#fff3e0

@@ -6,3 +6,5 @@
 ['remote "gdrive"']
     url = gdrive://root/OpenSource/ballot-location/
     gdrive_acknowledge_abuse = true
+['remote "vedas"']
+    url = ssh://vedas/mnt/moon/open-source/ballot-location
