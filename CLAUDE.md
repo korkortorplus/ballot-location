@@ -20,6 +20,9 @@ Thailand ballot location mapping project for election 2566 (Vote66). Aggregates 
 # Install dependencies
 uv sync
 
+# Setup git hooks (do this after first clone)
+mise run setup:hooks
+
 # Run Jupyter notebooks
 uv run jupyter lab
 
@@ -29,7 +32,34 @@ mise run download:inputs
 # DVC data operations
 dvc pull                    # Pull data from remote
 mise run dvc-push           # Push data to remote (requires 1Password)
+
+# Run pre-commit hooks manually
+uv run pre-commit run --all-files
 ```
+
+## Git Hooks
+
+### Pre-commit Framework
+
+This project uses [pre-commit](https://pre-commit.com/) to prevent accidentally committing large files to git.
+
+**Installation:**
+```bash
+mise run setup:hooks
+```
+
+**What it does:**
+- Blocks files >5MB from being committed to git (use DVC instead)
+- Checks for merge conflicts and case conflicts
+- Runs Ruff linter and formatter on Python files
+- Validates YAML and TOML files
+
+**If the hook blocks your commit:**
+1. Remove from staging: `git reset HEAD <file>`
+2. Track with DVC: `dvc add <file>`
+3. Commit the .dvc metadata: `git add <file>.dvc .gitignore && git commit`
+
+See docs/DVC_WORKFLOW.md for detailed DVC workflow.
 
 ## Data Architecture
 
