@@ -11,3 +11,4 @@
 
 # Allow Python notebooks
 !*.ipynb
+wecheck_correction_report.txt
