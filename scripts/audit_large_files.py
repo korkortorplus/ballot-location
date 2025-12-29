@@ -7,7 +7,6 @@ and generates a comprehensive report.
 """
 
 import argparse
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,7 +23,7 @@ def get_file_size(file_path: Path) -> int:
 
 def is_dvc_tracked(file_path: Path) -> bool:
     """Check if file has corresponding .dvc metadata file"""
-    dvc_file = Path(str(file_path) + '.dvc')
+    dvc_file = Path(str(file_path) + ".dvc")
     return dvc_file.exists()
 
 
@@ -32,9 +31,9 @@ def is_git_ignored(file_path: Path, repo_root: Path) -> bool:
     """Check if file is git-ignored"""
     try:
         result = subprocess.run(
-            ['git', 'check-ignore', '-q', str(file_path)],
+            ["git", "check-ignore", "-q", str(file_path)],
             cwd=repo_root,
-            capture_output=True
+            capture_output=True,
         )
         # Exit code 0 means file is ignored
         return result.returncode == 0
@@ -46,19 +45,23 @@ def is_git_staged(file_path: Path, repo_root: Path) -> bool:
     """Check if file is currently staged in git"""
     try:
         result = subprocess.run(
-            ['git', 'diff', '--cached', '--name-only'],
+            ["git", "diff", "--cached", "--name-only"],
             cwd=repo_root,
             capture_output=True,
-            text=True
+            text=True,
         )
-        staged_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        staged_files = (
+            result.stdout.strip().split("\n") if result.stdout.strip() else []
+        )
         rel_path = file_path.relative_to(repo_root)
         return str(rel_path) in staged_files
     except (subprocess.CalledProcessError, ValueError):
         return False
 
 
-def scan_large_files(repo_root: Path, threshold_bytes: int) -> List[Tuple[Path, int, bool, bool, bool]]:
+def scan_large_files(
+    repo_root: Path, threshold_bytes: int
+) -> List[Tuple[Path, int, bool, bool, bool]]:
     """
     Scan repository for large files
 
@@ -67,17 +70,17 @@ def scan_large_files(repo_root: Path, threshold_bytes: int) -> List[Tuple[Path, 
     large_files = []
 
     # Scan all files in the repository
-    for file_path in repo_root.rglob('*'):
+    for file_path in repo_root.rglob("*"):
         # Skip directories
         if not file_path.is_file():
             continue
 
         # Skip .git directory
-        if '.git' in file_path.parts:
+        if ".git" in file_path.parts:
             continue
 
         # Skip .dvc files themselves
-        if file_path.suffix == '.dvc':
+        if file_path.suffix == ".dvc":
             continue
 
         # Check file size
@@ -95,7 +98,9 @@ def scan_large_files(repo_root: Path, threshold_bytes: int) -> List[Tuple[Path, 
     return large_files
 
 
-def check_unpushed_commits(repo_root: Path, threshold_bytes: int) -> List[Tuple[str, str, int]]:
+def check_unpushed_commits(
+    repo_root: Path, threshold_bytes: int
+) -> List[Tuple[str, str, int]]:
     """
     Check unpushed commits for large files
 
@@ -106,43 +111,47 @@ def check_unpushed_commits(repo_root: Path, threshold_bytes: int) -> List[Tuple[
     try:
         # Get list of unpushed commits
         result = subprocess.run(
-            ['git', 'log', 'origin/main..HEAD', '--pretty=format:%H'],
+            ["git", "log", "origin/main..HEAD", "--pretty=format:%H"],
             cwd=repo_root,
             capture_output=True,
-            text=True
+            text=True,
         )
 
         if result.returncode != 0:
             return large_files_in_commits
 
-        commit_hashes = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        commit_hashes = (
+            result.stdout.strip().split("\n") if result.stdout.strip() else []
+        )
 
         for commit_hash in commit_hashes:
             # List files in commit with sizes
             result = subprocess.run(
-                ['git', 'ls-tree', '-r', '-l', commit_hash],
+                ["git", "ls-tree", "-r", "-l", commit_hash],
                 cwd=repo_root,
                 capture_output=True,
-                text=True
+                text=True,
             )
 
-            for line in result.stdout.strip().split('\n'):
+            for line in result.stdout.strip().split("\n"):
                 if not line:
                     continue
 
                 parts = line.split()
                 if len(parts) >= 5:
                     size_str = parts[3]
-                    file_path = ' '.join(parts[4:])
+                    file_path = " ".join(parts[4:])
 
                     # Skip if size is '-' (directory or submodule)
-                    if size_str == '-':
+                    if size_str == "-":
                         continue
 
                     try:
                         size = int(size_str)
                         if size > threshold_bytes:
-                            large_files_in_commits.append((commit_hash[:7], file_path, size))
+                            large_files_in_commits.append(
+                                (commit_hash[:7], file_path, size)
+                            )
                     except ValueError:
                         continue
 
@@ -154,7 +163,7 @@ def check_unpushed_commits(repo_root: Path, threshold_bytes: int) -> List[Tuple[
 
 def format_size(size_bytes: int) -> str:
     """Format size in human-readable format"""
-    for unit in ['B', 'KB', 'MB', 'GB']:
+    for unit in ["B", "KB", "MB", "GB"]:
         if size_bytes < 1024.0:
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024.0
@@ -166,11 +175,11 @@ def generate_report(
     large_files: List[Tuple[Path, int, bool, bool, bool]],
     unpushed_large_files: List[Tuple[str, str, int]],
     threshold_bytes: int,
-    format_type: str = 'markdown'
+    format_type: str = "markdown",
 ) -> str:
     """Generate audit report"""
 
-    if format_type == 'markdown':
+    if format_type == "markdown":
         report = []
         report.append("# Large File Audit Report")
         report.append("")
@@ -190,7 +199,9 @@ def generate_report(
         report.append(f"- **DVC-tracked:** {dvc_tracked_count}")
         report.append(f"- **NOT DVC-tracked:** {not_tracked_count}")
         report.append(f"- **Staged in git:** {staged_count}")
-        report.append(f"- **Large files in unpushed commits:** {len(unpushed_large_files)}")
+        report.append(
+            f"- **Large files in unpushed commits:** {len(unpushed_large_files)}"
+        )
         report.append("")
 
         # Large files in unpushed commits
@@ -209,7 +220,11 @@ def generate_report(
             report.append("")
 
         # Files not DVC-tracked
-        not_tracked = [(p, s, staged, ignored) for p, s, dvc, staged, ignored in large_files if not dvc]
+        not_tracked = [
+            (p, s, staged, ignored)
+            for p, s, dvc, staged, ignored in large_files
+            if not dvc
+        ]
         if not_tracked:
             report.append("## ⚠️  Large Files NOT DVC-Tracked")
             report.append("")
@@ -221,7 +236,9 @@ def generate_report(
                 rel_path = file_path.relative_to(repo_root)
                 staged_str = "✓" if staged else ""
                 ignored_str = "✓" if ignored else ""
-                report.append(f"| `{rel_path}` | {format_size(size)} | {staged_str} | {ignored_str} |")
+                report.append(
+                    f"| `{rel_path}` | {format_size(size)} | {staged_str} | {ignored_str} |"
+                )
             report.append("")
             report.append("**Action required:**")
             report.append("```bash")
@@ -236,7 +253,9 @@ def generate_report(
         if dvc_tracked:
             report.append("## ℹ️  DVC-Tracked Files (Data File Exists Locally)")
             report.append("")
-            report.append("These files have .dvc metadata but the actual data file still exists locally.")
+            report.append(
+                "These files have .dvc metadata but the actual data file still exists locally."
+            )
             report.append("This is normal if you're actively working with the data.")
             report.append("")
             report.append("| File | Size |")
@@ -264,10 +283,12 @@ def generate_report(
                 dvc_str = "✓" if dvc else "❌"
                 staged_str = "✓" if staged else ""
                 ignored_str = "✓" if ignored else ""
-                report.append(f"| `{rel_path}` | {format_size(size)} | {dvc_str} | {staged_str} | {ignored_str} |")
+                report.append(
+                    f"| `{rel_path}` | {format_size(size)} | {dvc_str} | {staged_str} | {ignored_str} |"
+                )
             report.append("")
 
-        return '\n'.join(report)
+        return "\n".join(report)
 
     else:  # plain text
         report = []
@@ -283,32 +304,34 @@ def generate_report(
             status = "DVC-tracked" if dvc else "NOT DVC-tracked"
             staged_str = " [STAGED]" if staged else ""
             ignored_str = " [IGNORED]" if ignored else ""
-            report.append(f"{rel_path}: {format_size(size)} - {status}{staged_str}{ignored_str}")
+            report.append(
+                f"{rel_path}: {format_size(size)} - {status}{staged_str}{ignored_str}"
+            )
 
-        return '\n'.join(report)
+        return "\n".join(report)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Audit large files in a DVC-tracked repository'
+        description="Audit large files in a DVC-tracked repository"
     )
     parser.add_argument(
-        '--threshold',
+        "--threshold",
         type=int,
         default=5242880,  # 5MB
-        help='File size threshold in bytes (default: 5MB = 5242880)'
+        help="File size threshold in bytes (default: 5MB = 5242880)",
     )
     parser.add_argument(
-        '--format',
-        choices=['markdown', 'plain'],
-        default='markdown',
-        help='Output format (default: markdown)'
+        "--format",
+        choices=["markdown", "plain"],
+        default="markdown",
+        help="Output format (default: markdown)",
     )
     parser.add_argument(
-        '--repo-root',
+        "--repo-root",
         type=Path,
         default=Path.cwd(),
-        help='Repository root directory (default: current directory)'
+        help="Repository root directory (default: current directory)",
     )
 
     args = parser.parse_args()
@@ -316,7 +339,7 @@ def main():
     repo_root = args.repo_root.resolve()
 
     # Check if we're in a git repository
-    if not (repo_root / '.git').exists():
+    if not (repo_root / ".git").exists():
         print("Error: Not a git repository", file=sys.stderr)
         sys.exit(1)
 
@@ -328,11 +351,7 @@ def main():
 
     # Generate report
     report = generate_report(
-        repo_root,
-        large_files,
-        unpushed_large_files,
-        args.threshold,
-        args.format
+        repo_root, large_files, unpushed_large_files, args.threshold, args.format
     )
 
     print(report)
@@ -345,5 +364,5 @@ def main():
     sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
