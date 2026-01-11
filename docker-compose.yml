@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   nominatim:
-    image: mediagis/nominatim:4.2
+    image: mediagis/nominatim:4.5
     container_name: nominatim
     environment:
       - PBF_URL=https://download.geofabrik.de/asia/thailand-latest.osm.pbf
