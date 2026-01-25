@@ -1,0 +1,5 @@
+outs:
+- md5: 8b63ef26d5e3dcecf8ff59ba7e17f8a3
+  size: 3123121
+  hash: md5
+  path: station66_with_source.parquet

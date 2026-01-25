@@ -1,0 +1,4 @@
+/row_changes.parquet
+/commits_metadata.parquet
+/early_voting_geocoded_raw.parquet
+/early_voting_validated.parquet

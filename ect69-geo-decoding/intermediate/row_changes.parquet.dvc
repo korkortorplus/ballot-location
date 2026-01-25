@@ -1,0 +1,5 @@
+outs:
+- md5: 64bb70df7c138f34fd74ffc8af7f082e
+  size: 2581271
+  hash: md5
+  path: row_changes.parquet

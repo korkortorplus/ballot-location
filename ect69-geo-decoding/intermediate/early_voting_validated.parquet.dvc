@@ -1,0 +1,5 @@
+outs:
+- md5: de4c550a202456d89f8d297e2e51cc46
+  size: 90353
+  hash: md5
+  path: early_voting_validated.parquet

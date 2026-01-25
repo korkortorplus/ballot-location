@@ -1,0 +1,5 @@
+outs:
+- md5: 152307069f3dbfb4ab96678a597ccb02
+  size: 191013
+  hash: md5
+  path: early_voting_geocoded_raw.parquet
