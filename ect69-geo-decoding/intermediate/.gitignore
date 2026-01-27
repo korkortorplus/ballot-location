@@ -2,3 +2,4 @@
 /commits_metadata.parquet
 /early_voting_geocoded_raw.parquet
 /early_voting_validated.parquet
+/ect69_voting_units_cleaned.parquet
