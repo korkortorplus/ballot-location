@@ -50,12 +50,14 @@ The resolution is auto-derived; the agent does not need to specify it. An option
 │  tools:                               │
 │    - map.add_layer(geojson)           │
 │    - map.remove_layer(id)             │
+│    - map.set_style(id, style)         │
 │    - map.set_view(h3, zoom)           │
+│    - map.fit_bounds(layer_ids?)       │
 │    - map.describe()                   │
 │    - map.screenshot(basemap)          │
 │    - map.search(query/lat/lng)        │
 │    - map.get_features(layer, area)    │
-│    - map.exec(expression)             │
+│    - map.measure(op, a, b)            │
 └──────────┬────────────────────────────┘
            │ WebSocket (synchronous req/res)
 ┌──────────▼────────────────────────────┐
@@ -95,21 +97,36 @@ The resolution is auto-derived; the agent does not need to specify it. An option
 
 Every layer gets a server-assigned **3-character nano ID** (e.g. `"a1b"`, `"x7q"`, `"m3p"`). This is the stable identifier used in all tool calls (`remove_layer`, `toggle_layer`, `get_features`, etc.). The human-readable `name` is separate -- it's the label shown in the layer panel and used in `describe()` output.
 
-The `feature()` helper in `map.exec` accepts either the nano ID or the human-readable name.
+Layer names are the canonical identifier for human-readable references (in `describe()` output, `focus` parameter, `feature()` helper). Nano IDs are used only in tool parameters that require `layer_id`.
 
 ## Tools
 
 ### `map.add_layer`
 
-Add any GeoJSON to the map. Returns a 3-char nano ID.
+Add any GeoJSON to the map. Returns a summary object with the assigned ID and layer metadata.
 
 ```python
 def add_layer(
     geojson: dict,            # any valid GeoJSON (Point, Polygon, FeatureCollection, etc.)
     name: str,                # human-readable label shown in layer panel
     style: dict | None = None # optional style (see Style Schema below)
-) -> str:                     # returns 3-char nano ID (e.g. "a1b")
+) -> dict
 ```
+
+**Return value:**
+
+```json
+{
+  "id": "a1b",
+  "name": "candidate",
+  "type": "Point",
+  "features": 1,
+  "h3": "8c2a100d2929dff",
+  "bbox": [100.49, 13.75, 100.49, 13.75]
+}
+```
+
+For FeatureCollections, `h3` is the centroid of the bounding box, and `features` is the count. This saves the agent a `describe()` call after every add.
 
 **Examples:**
 
@@ -120,7 +137,7 @@ add_layer(
     name="candidate",
     style={"color": "red", "icon": "pin"}
 )
-# → "a1b"
+# → {"id": "a1b", "name": "candidate", "type": "Point", "features": 1, "h3": "8c2a100d2929dff", "bbox": [100.49, 13.75, 100.49, 13.75]}
 
 # show a boundary polygon
 add_layer(
@@ -128,7 +145,7 @@ add_layer(
     name="tambon boundary",
     style={"color": "blue", "fill_opacity": 0.1}
 )
-# → "x7q"
+# → {"id": "x7q", "name": "tambon boundary", "type": "Polygon", "features": 1, "h3": "892a100d293ffff", "bbox": [100.48, 13.74, 100.50, 13.76]}
 
 # show multiple points at once
 add_layer(
@@ -136,14 +153,32 @@ add_layer(
     name="geocode results",
     style={"color": "orange", "radius": 6}
 )
-# → "m3p"
+# → {"id": "m3p", "name": "geocode results", "type": "FeatureCollection", "features": 5, "h3": "892a100d293ffff", "bbox": [100.48, 13.74, 100.51, 13.77]}
 ```
 
 ### `map.remove_layer`
 
 ```python
-def remove_layer(layer_id: str) -> bool
+def remove_layer(layer_id: str) -> None
 ```
+
+### `map.set_style`
+
+Update the style of an existing layer without re-uploading GeoJSON. Useful for changing marker color, opacity, etc. on large FeatureCollections.
+
+```python
+def set_style(
+    layer_id: str,            # 3-char nano ID
+    style: dict               # style properties to merge (see Style Schema)
+) -> None
+```
+
+**Example:**
+```python
+set_style("a1b", {"color": "green", "radius": 8})
+```
+
+Only the specified style keys are updated; unspecified keys retain their current values.
 
 ### `map.clear_layers`
 
@@ -164,6 +199,23 @@ def set_view(
     lng: float | None = None,
     zoom: int = 17             # 1 = world, 18 = building level
 ) -> None
+```
+
+### `map.fit_bounds`
+
+Auto-zoom the map to show all specified layers (or all layers if none specified). Saves the agent from manually computing bounding boxes.
+
+```python
+def fit_bounds(
+    layer_ids: list[str] | None = None,  # layers to fit; None = all layers
+    padding: int = 50                     # pixels of padding around bounds
+) -> None
+```
+
+**Example:**
+```python
+fit_bounds()                          # zoom to show everything
+fit_bounds(layer_ids=["a1b", "x7q"])  # zoom to show just these two layers
 ```
 
 ### `map.describe`
@@ -201,7 +253,17 @@ def describe(
 - h3: 8c2a100d2929dff
 - same hex as candidate (< 9m apart)
 
-### [m3p] tambon boundary (Polygon)
+### [m3p] geocode results (FeatureCollection, 50 features) 🟠
+- 50 Point features
+- **sample** (first 5):
+  - [0] "Lumphini Park" — h3: 8c2a100d2929dff
+  - [1] "Wat Pho" — h3: 8c2a100d2801dff
+  - [2] "สถานีรถไฟหัวลำโพง" — h3: 8c2a100d28a3dff
+  - [3] "Central World" — h3: 8c2a100c5b29dff
+  - [4] "Chatuchak Park" — h3: 8c2a10025929dff
+- **properties**: name (50 unique), type (school: 23, temple: 15, park: 12)
+
+### [r2d] tambon boundary (Polygon)
 - 12 vertices, area ~0.8 km²
 - candidate → inside, 342m from nearest edge
 - ect66 ref → inside, 340m from nearest edge
@@ -217,6 +279,7 @@ The describe output is structured so the agent can quickly scan spatial relation
 - **Proximity**: H3 distance between point layers (same hex, adjacent, N hexes apart)
 - **Edge distance**: how far points are from polygon boundaries
 - **Layer summary**: type, vertex count, area for polygons
+- **Feature summary** (FeatureCollections): first 5 features with name + H3 position, plus property value distribution for the most common properties
 
 ### `map.screenshot`
 
@@ -289,36 +352,64 @@ get_features(layer_id="m3p", h3="8c2a100d2929dff", limit=5)
 # → [{"type": "Feature", "geometry": {...}, "properties": {"name": "...", ...}}, ...]
 ```
 
-### `map.exec`
+### `map.measure`
 
-Run a spatial expression and return the result. Uses turf.js (client-side in Playwright) for exact measurements and spatial operations. More flexible than a bespoke measure tool -- the agent can compute distance, area, bearing, buffer, centroid, etc.
+Named spatial measurement tools backed by turf.js. Replaces the previous `map.exec` approach — named operations eliminate hallucination risk on function signatures and prevent arbitrary JS execution in the browser context.
+
+All operations reference features by **layer name** (the `name` passed to `add_layer`). For FeatureCollections, append `[index]` to reference a specific feature (e.g. `"geocode results[3]"`). Without an index, the first feature is used.
 
 ```python
-def exec(
-    expression: str  # JavaScript expression using turf.js and feature() helper
-) -> dict           # result of the expression (JSON-serializable)
+def measure(
+    op: str,                    # operation name (see table below)
+    a: str,                     # first feature reference (layer name or "name[index]")
+    b: str | None = None,       # second feature reference (for binary ops)
+    params: dict | None = None  # operation-specific parameters
+) -> dict
 ```
+
+**Supported operations:**
+
+| `op` | Description | `a` | `b` | `params` | Returns |
+|------|-------------|-----|-----|----------|---------|
+| `distance` | Distance between two features | point/geometry | point/geometry | `units` (default `"meters"`) | `{"result": 3.2, "units": "meters"}` |
+| `area` | Area of a polygon | polygon | — | — | `{"result": 823400.5, "units": "m²"}` |
+| `bearing` | Compass bearing from a to b | point | point | — | `{"result": 45.3, "units": "degrees"}` |
+| `buffer` | Buffer around a feature | any geometry | — | `radius`, `units` (default `100`, `"meters"`) | `{"result": <GeoJSON Polygon>}` |
+| `centroid` | Centroid of a feature | any geometry | — | — | `{"result": <GeoJSON Point>}` |
+| `contains` | Does a contain b? | polygon | point/geometry | — | `{"result": true}` |
+| `intersects` | Do a and b intersect? | any geometry | any geometry | — | `{"result": false}` |
+| `nearest` | Nearest feature in a FeatureCollection to b | FeatureCollection | point | — | `{"result": <GeoJSON Feature>, "index": 3, "distance_m": 42.1}` |
 
 **Examples:**
 ```python
 # Distance between two features
-exec("turf.distance(feature('candidate').geometry, feature('ect66_ref').geometry, {units: 'meters'})")
-# → {"result": 3.2}
+measure(op="distance", a="candidate", b="ect66 ref")
+# → {"result": 3.2, "units": "meters"}
 
 # Area of a polygon feature
-exec("turf.area(feature('tambon_boundary').geometry)")
-# → {"result": 823400.5}
+measure(op="area", a="tambon boundary")
+# → {"result": 823400.5, "units": "m²"}
 
 # Bearing from one point to another
-exec("turf.bearing(feature('candidate').geometry, feature('ect66_ref').geometry)")
-# → {"result": 45.3}
+measure(op="bearing", a="candidate", b="ect66 ref")
+# → {"result": 45.3, "units": "degrees"}
 
 # Buffer around a point (returns GeoJSON)
-exec("turf.buffer(feature('candidate').geometry, 100, {units: 'meters'})")
+measure(op="buffer", a="candidate", params={"radius": 100, "units": "meters"})
 # → {"result": {"type": "Polygon", "coordinates": [...]}}
-```
 
-The `feature(name)` helper returns the first GeoJSON Feature from the named layer. For FeatureCollections, use `feature(name, index)` to access a specific feature by index.
+# Check containment
+measure(op="contains", a="tambon boundary", b="candidate")
+# → {"result": true}
+
+# Find nearest point in a collection
+measure(op="nearest", a="geocode results", b="candidate")
+# → {"result": {"type": "Feature", ...}, "index": 3, "distance_m": 42.1}
+
+# Access specific feature in a FeatureCollection
+measure(op="distance", a="geocode results[3]", b="candidate")
+# → {"result": 15.7, "units": "meters"}
+```
 
 ### `map.add_raster_layer`
 
@@ -364,6 +455,29 @@ Strict enum of allowed style properties. Anything not listed is silently ignored
 | `icon` | string | `pin`, `circle`, `square`, `diamond` | Marker icon shape |
 | `weight` | int | 1 - 10 | Line width in pixels |
 
+## Error Contract
+
+All tools return a consistent error shape when an operation fails. The agent can pattern-match on the `"error"` key to detect failures.
+
+```json
+{"error": "<category>: <detail>"}
+```
+
+**Error categories:**
+
+| Category | Example | When |
+|----------|---------|------|
+| `layer_not_found` | `{"error": "layer_not_found: zzz"}` | `remove_layer`, `set_style`, `get_features`, `measure` with invalid layer ID |
+| `feature_not_found` | `{"error": "feature_not_found: geocode results[99]"}` | `measure` with out-of-range index |
+| `invalid_op` | `{"error": "invalid_op: intersect (did you mean: intersects)"}` | `measure` with unknown operation name |
+| `invalid_geojson` | `{"error": "invalid_geojson: missing 'type' field"}` | `add_layer` with malformed GeoJSON |
+| `search_empty` | `{"error": "search_empty: no results for 'asdfxyz'"}` | `search` with no matches |
+| `type_mismatch` | `{"error": "type_mismatch: area requires Polygon, got Point"}` | `measure` with wrong geometry type |
+
+Successful operations that return `None` (like `set_view`, `set_style`, `fit_bounds`) return `{"ok": true}`.
+
+The `"did you mean"` hint in `invalid_op` is generated by fuzzy-matching against the supported operation list, helping the agent self-correct.
+
 ## Base Maps
 
 Two built-in base maps, always available, toggled via `screenshot(basemap=...)`:
@@ -379,22 +493,27 @@ The agent typically uses `describe()` for fast iteration, then `screenshot("sate
 
 ```
 Agent: map.set_view(h3="8c2a100d2929dff", zoom=17)
-Agent: map.add_layer(point, "candidate", red)        → "a1b"
-Agent: map.add_layer(polygon, "tambon boundary", blue) → "x7q"
+Agent: map.add_layer(point, "candidate", red)
+  → {"id": "a1b", "type": "Point", "features": 1, "h3": "8c2a100d2929dff", ...}
+Agent: map.add_layer(polygon, "tambon boundary", blue)
+  → {"id": "x7q", "type": "Polygon", "features": 1, ...}
 Agent: map.describe()
   → "[a1b] candidate at 8c2a100d2929dff, inside tambon boundary, 342m from edge"
 Agent: [adjusts pin based on text feedback]
+Agent: map.set_style("a1b", {"color": "green"})       ← style change without re-upload
 Agent: map.remove_layer("a1b")
-Agent: map.add_layer(new_point, "candidate v2", red)  → "k9z"
+Agent: map.add_layer(new_point, "candidate v2", red)
+  → {"id": "k9z", "type": "Point", "features": 1, "h3": "8c2a100d292b1ff", ...}
 Agent: map.describe(focus="candidate v2")
-  → "[k9z] candidate v2 at 8c2a100d292b1ff, adjacent hex to candidate, inside tambon boundary, 280m from edge"
+  → "[k9z] candidate v2 at 8c2a100d292b1ff, inside tambon boundary, 280m from edge"
 Agent: [looks good spatially, now needs visual confirmation]
 Agent: map.screenshot("satellite")
   → [sees building footprint, entrance on south side -- low res sufficient]
 Agent: map.screenshot("street", detail="high")
   → [sees road name ถนนมหาราช at high res, confirms location]
-Agent: map.exec("turf.distance(feature('candidate v2').geometry, feature('ect66 ref').geometry, {units: 'meters'})")
-  → {"result": 3.2}
+Agent: map.measure(op="distance", a="candidate v2", b="ect66 ref")
+  → {"result": 3.2, "units": "meters"}
+Agent: map.fit_bounds()                                ← zoom to show all layers
 Agent: [accepts result]
 ```
 
@@ -408,7 +527,7 @@ import anthropic
 tools = [
     {
         "name": "map.add_layer",
-        "description": "Add a GeoJSON layer (points, polygons, lines) to the interactive map.",
+        "description": "Add a GeoJSON layer to the map. Returns {id, name, type, features, h3, bbox}.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -474,14 +593,40 @@ tools = [
         }
     },
     {
-        "name": "map.exec",
-        "description": "Run a turf.js spatial expression and return the result. Use feature('name') to reference a GeoJSON feature from a layer. Supports distance, area, bearing, buffer, centroid, etc.",
+        "name": "map.measure",
+        "description": "Spatial measurement between map features. Reference features by layer name; for FeatureCollections use 'name[index]'.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "expression": {"type": "string", "description": "JavaScript expression using turf.js and feature() helper"}
+                "op": {"type": "string", "enum": ["distance", "area", "bearing", "buffer", "centroid", "contains", "intersects", "nearest"], "description": "Measurement operation"},
+                "a": {"type": "string", "description": "First feature reference (layer name or 'name[index]')"},
+                "b": {"type": "string", "description": "Second feature reference (for binary ops like distance, bearing, contains)"},
+                "params": {"type": "object", "description": "Operation-specific params (e.g. {units: 'meters'} for distance, {radius: 100} for buffer)"}
             },
-            "required": ["expression"]
+            "required": ["op", "a"]
+        }
+    },
+    {
+        "name": "map.set_style",
+        "description": "Update the style of an existing layer without re-uploading GeoJSON. Merges with current style.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "layer_id": {"type": "string", "description": "3-char nano ID"},
+                "style": {"type": "object", "description": "Style properties to merge (color, fill_color, fill_opacity, opacity, radius, icon, weight)"}
+            },
+            "required": ["layer_id", "style"]
+        }
+    },
+    {
+        "name": "map.fit_bounds",
+        "description": "Auto-zoom the map to show all specified layers, or all layers if none specified.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "layer_ids": {"type": "array", "items": {"type": "string"}, "description": "Layer IDs to fit. Omit to fit all layers."},
+                "padding": {"type": "integer", "default": 50, "description": "Pixels of padding around bounds"}
+            }
         }
     },
     # ... other tools (remove_layer, clear_layers, set_view, add_raster_layer, list_layers, toggle_layer)
