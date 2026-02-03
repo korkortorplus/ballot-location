@@ -1,0 +1,5 @@
+outs:
+- md5: d2d49c3c6ae867a7c050383fe37fbe5d
+  size: 28753
+  hash: md5
+  path: sample_300_locations.parquet

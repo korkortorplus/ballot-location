@@ -27,6 +27,7 @@ dependencies = [
     "pythainlp>=5.1.2",
     "shapely>=2.1.1",
     "tqdm>=4.67.1",
+    "scikit-learn>=1.8.0",
 ]
 
 [dependency-groups]
