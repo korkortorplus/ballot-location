@@ -58,6 +58,32 @@ services:
       retries: 60
       start_period: 300s
 
+  geocoder:
+    build:
+      context: ./ect69-geo-decoding/scripts
+      dockerfile: Dockerfile.geocoder
+    container_name: geocoder
+    restart: on-failure
+    depends_on:
+      nominatim:
+        condition: service_healthy
+    environment:
+      - GISTDA_API_KEY_FILE=/run/secrets/gistda_api_key
+      - NOMINATIM_URL=http://nominatim:8080/search
+    secrets:
+      - gistda_api_key
+    volumes:
+      - ./ect69-geo-decoding/intermediate:/data/intermediate:ro
+      - ./ect69-geo-decoding/outputs:/data/outputs
+    command:
+      - /data/intermediate/ect69_voting_units_cleaned.parquet
+      - /data/outputs/ect69_main_geocoded.parquet
+      - "0"
+
+secrets:
+  gistda_api_key:
+    file: ./secrets/gistda_api_key.txt
+
 volumes:
   postgis_data:
   pgadmin_data:

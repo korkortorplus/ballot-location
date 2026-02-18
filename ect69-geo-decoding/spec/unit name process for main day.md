@@ -126,3 +126,8 @@ uv run python ect69-geo-decoding/scripts/clean_main_voting_units.py
 Ben's
 1. some sublocation is lost `โรงเรียนเผยอิง (ห้องเรียนฝั่งขวา)#` sublocation is `ห้องเรียนฝั่งขวา`
 2. `เต็นท์บ้านโรจนา (ASHA GUEST HOUSE) ซอยอินทามระ 3#` main location is `บ้านโรจนา (ASHA GUEST HOUSE) ซอยอินทามระ 3` is lost or `โรงเรียนบดินทรเดชา (สิงห์ สิงหเสนี) 2 ซอยนวมินทร์ 72#` `โรงเรียนบดินทรเดชา 2 ซอยนวมินทร์ 72` is lost the `(สิงห์ สิงหเสนี)` part.
+
+## ideation novel ways to process
+
+### baseline ect66 pro
+1. create agent

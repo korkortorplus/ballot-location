@@ -382,6 +382,11 @@ def phase_c_build_output(
     final_df["source_author"] = None
     final_df["source_classification"] = "none"
     final_df["source_timestamp"] = None
+    # New columns for tracking manual contributions (even if overwritten)
+    final_df["had_manual_contribution"] = False
+    final_df["manual_commit"] = None
+    final_df["manual_author"] = None
+    final_df["manual_timestamp"] = None
 
     if not changes_df.empty:
         # Create lookup key for matching
@@ -414,14 +419,34 @@ def phase_c_build_output(
             changes_df.sort_values("timestamp").groupby("_key").last().reset_index()
         )
 
+        # Also find manual contributions (even if overwritten)
+        manual_changes = changes_df[changes_df["classification"] == "manual"]
+        manual_by_key = (
+            manual_changes.sort_values("timestamp").groupby("_key").last().reset_index()
+        )
+        manual_keys = set(manual_by_key["_key"])
+
         # Create attribution lookup
         attribution = {}
         for _, row in latest_changes.iterrows():
-            attribution[row["_key"]] = {
+            key = row["_key"]
+            had_manual = key in manual_keys
+            # Get manual contribution details if exists
+            manual_row = (
+                manual_by_key[manual_by_key["_key"] == key].iloc[0]
+                if had_manual
+                else None
+            )
+            attribution[key] = {
                 "source_commit": row["commit_hash"],
                 "source_author": row["author_name"],
                 "source_classification": row["classification"],
                 "source_timestamp": row["timestamp"],
+                # New fields for manual contribution tracking
+                "had_manual_contribution": had_manual,
+                "manual_commit": manual_row["commit_hash"] if had_manual else None,
+                "manual_author": manual_row["author_name"] if had_manual else None,
+                "manual_timestamp": manual_row["timestamp"] if had_manual else None,
             }
 
         # Apply attribution
@@ -435,6 +460,13 @@ def phase_c_build_output(
                     "source_classification"
                 ]
                 final_df.at[idx, "source_timestamp"] = attr["source_timestamp"]
+                # Manual contribution tracking
+                final_df.at[idx, "had_manual_contribution"] = attr[
+                    "had_manual_contribution"
+                ]
+                final_df.at[idx, "manual_commit"] = attr["manual_commit"]
+                final_df.at[idx, "manual_author"] = attr["manual_author"]
+                final_df.at[idx, "manual_timestamp"] = attr["manual_timestamp"]
 
         final_df = final_df.drop(columns=["_key"])
 

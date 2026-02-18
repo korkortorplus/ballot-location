@@ -28,6 +28,17 @@ dependencies = [
     "shapely>=2.1.1",
     "tqdm>=4.67.1",
     "scikit-learn>=1.8.0",
+    "sqlalchemy>=2.0",
+    "geoalchemy2>=0.15",
+    "psycopg2-binary>=2.9",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "playwright>=1.49",
+    "h3>=4.1",
+    "nanoid>=2.0",
+    "websockets>=14.0",
+    "streamlit>=1.53.1",
+    "openai>=2.16.0",
 ]
 
 [dependency-groups]

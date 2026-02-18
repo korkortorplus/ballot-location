@@ -36,12 +36,26 @@ CREATE TABLE ref.electoral_district (
 ```
 
 #### `ref.admin_boundary`
-Administrative boundaries down to tambon (level 3) for point-in-polygon validation.
+Three-level administrative hierarchy (province → amphoe → tambon) with `ltree` paths for fast ancestor/descendant queries and `parent_id` for direct joins.
 
-**Sources:**
-- Tambon: `/home/ben/ddd/ninyawee/ballot-location/ect66-geo-decoding/shapefiles/tambon_DOL_utf8.gpkg` (96 MB)
-- Bangkok sub-districts: `ect66-geo-decoding/shapefiles/BMA_ADMIN_SUB_DISTRICT.gpkg` (1.6 MB)
-- Admin level 2 (amphoe): `/home/ben/ddd/ninyawee/landmap/web/static/data/tha_admin2.geojson` (284 MB)
+**Sources (3 different providers):**
+
+| Level | Source | Rows | name_th field | name_en field |
+|-------|--------|------|---------------|---------------|
+| 1 (province) | OCHA `tha_admin_boundaries.geojson.zip` → `tha_admin1.geojson` | 77 | `adm1_name1` | `adm1_name` |
+| 2 (amphoe) | OCHA `tha_admin2.geojson` (284 MB) | 928 | `adm2_name1` | `adm2_name` |
+| 3 (tambon) | DOL `tambon_DOL_utf8.gpkg` (96 MB) | 7616 | `TAM_NAM_T` | — |
+| 3 (BMA) | BMA `BMA_ADMIN_SUB_DISTRICT.gpkg` (1.6 MB) | 180 | `SUBDISTR_1` | — |
+
+**Hierarchy wiring:**
+- Province ↔ amphoe: joined by OCHA `adm1_pcode` (both sources have it)
+- Amphoe ↔ tambon: joined by Thai name (`_prov_name` + `_amphoe_name`) after stripping `อ.`/`กิ่ง อ.` prefixes and applying 21 hand-verified name corrections for old/misspelled amphoe names in the DOL data (see `AMPHOE_NAME_FIXES` in `load_ref_geodata_to_postgis.py`)
+- BMA sub-districts: joined to Bangkok amphoe by `DISTRICT_N` matching `name_th` within `adm1_pcode='TH10'`
+
+**ltree path format:**
+- Province: `TH10` (adm1_pcode)
+- Amphoe: `TH10.TH1001` (adm1_pcode.adm2_pcode)
+- Tambon: `TH10.TH1001.t_42` (parent path + auto-generated row id, since tambon has no pcode)
 
 ```sql
 CREATE TABLE ref.admin_boundary (
@@ -50,10 +64,17 @@ CREATE TABLE ref.admin_boundary (
     name_th TEXT,
     name_en TEXT,
     parent_id INT REFERENCES ref.admin_boundary(id),
+    path LTREE,                -- e.g. 'TH10', 'TH10.TH1001', 'TH10.TH1001.t_123'
     geom GEOMETRY(MultiPolygon, 4326)
 );
 CREATE INDEX idx_admin_boundary_geom ON ref.admin_boundary USING GIST(geom);
 CREATE INDEX idx_admin_boundary_level_name ON ref.admin_boundary(admin_level, name_th);
+CREATE INDEX idx_admin_boundary_path ON ref.admin_boundary USING GIST(path);
+
+-- Example: all amphoe in Bangkok
+SELECT name_th FROM ref.admin_boundary WHERE path <@ 'TH10' AND admin_level = 2;
+-- Example: all tambon under a specific amphoe
+SELECT name_th FROM ref.admin_boundary WHERE path <@ 'TH10.TH1001' AND admin_level = 3;
 ```
 
 #### `ref.ect66_geocoded`
@@ -204,6 +225,7 @@ docker compose up -d postgis nominatim
 # 2. Enable extensions
 psql -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 psql -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+psql -c "CREATE EXTENSION IF NOT EXISTS ltree;"
 
 # 3. Create schemas
 psql -c "CREATE SCHEMA IF NOT EXISTS ref;"
@@ -211,15 +233,8 @@ psql -c "CREATE SCHEMA IF NOT EXISTS ect69;"
 psql -c "CREATE SCHEMA IF NOT EXISTS agent;"
 
 # 4. Load reference data (one-time)
-# Electoral districts
-ogr2ogr -f PostgreSQL PG:"..." \
-  "/home/ben/ddd/ninyawee/Thai-ECT-election-map/ECT Constituencies/2569/ShapeFile/2569_Election_Constituencies.shp" \
-  -nln ref.electoral_district -lco GEOMETRY_NAME=geom -t_srs EPSG:4326
-
-# Admin boundaries (tambon)
-ogr2ogr -f PostgreSQL PG:"..." \
-  "ect66-geo-decoding/shapefiles/tambon_DOL_utf8.gpkg" \
-  -nln ref.admin_boundary -lco GEOMETRY_NAME=geom
+# Electoral districts + admin boundaries (province → amphoe → tambon+BMA with ltree)
+uv run python ect69-geo-decoding/scripts/load_ref_geodata_to_postgis.py
 
 # ECT66 geocoded results
 uv run python scripts/load_ect66_to_postgis.py
