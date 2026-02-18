@@ -30,7 +30,34 @@ echo "To run hooks manually: uv run pre-commit run --all-files"
 
 [tasks."download:inputs"]
 description = "Download all external input data"
-depends = ["download:inputs:poom", "download:inputs:ect"]
+depends = ["download:inputs:poom", "download:inputs:ect", "download:inputs:ect69-outputs"]
+
+[tasks."download:inputs:ect69-outputs"]
+description = "Download ECT69 geocoding outputs from GitHub release"
+run = """
+#!/bin/bash
+set -e
+TAG="ect69-v0.1.0"
+DEST="ect69-geo-decoding/outputs"
+FILES=(
+  ect69_main_geocoded.parquet
+  ect69_matching_for_geocoding.xlsx
+  sample_300_locations_geocoded.parquet
+  sample_300_locations_gistda.parquet
+  sample_300_locations_nominatim.parquet
+  station66_with_source_manual.parquet
+)
+echo "Downloading ECT69 outputs from release $TAG..."
+for f in "${FILES[@]}"; do
+  if [ -f "$DEST/$f" ]; then
+    echo "  ✓ $f (exists, skipping)"
+  else
+    echo "  ↓ $f"
+    gh release download "$TAG" --pattern "$f" --dir "$DEST"
+  fi
+done
+echo "Done."
+"""
 
 [tasks."download:inputs:poom"]
 description = "Download poom ballot location data"

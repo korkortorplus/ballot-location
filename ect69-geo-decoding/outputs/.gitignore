@@ -2,3 +2,9 @@
 /vote69_early_voting_ประชามตินอกเขต_geo_decoded.csv
 /vote69_early_voting_เลือกตั้งล่วงหน้า_geo_decoded.csv
 /sample_300_locations.parquet
+/ect69_main_geocoded.parquet
+/ect69_matching_for_geocoding.xlsx
+/sample_300_locations_geocoded.parquet
+/sample_300_locations_gistda.parquet
+/sample_300_locations_nominatim.parquet
+/station66_with_source_manual.parquet
